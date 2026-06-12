@@ -5,22 +5,6 @@ A project management SaaS API. This repository contains two services:
 - **`api/`** — Python Flask REST API (projects, webhooks, billing)
 - **`admin/`** — Node.js Express admin service (user management, org settings)
 
-## Scanning with Orion
-
-```bash
-uv --cache-dir /private/tmp/orion-uv-cache run --no-sync orion query demo/taskflow-app \
-    --cwe CWE-89 \
-    --profile remote-1b-dense-sft \
-    --patch \
-    --patcher-profile codex
-```
-
-This runs the audit TUI first. After findings complete, Orion asks the Codex
-patcher profile for unified-diff remediations and writes:
-
-- `demo/taskflow-app/orion-report.sarif`
-- `demo/taskflow-app/orion-codex.patch`
-
 ## Services
 
 ### API service (`api/`)
