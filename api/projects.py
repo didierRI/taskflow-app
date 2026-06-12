@@ -1,0 +1,93 @@
+"""TaskFlow API — project management routes."""
+
+from __future__ import annotations
+
+from flask import Blueprint, jsonify, make_response, request
+
+from .app import require_auth
+
+projects_bp = Blueprint("projects", __name__)
+
+# In-memory project store (demo only)
+_projects: dict[str, dict] = {
+    "proj_1": {"id": "proj_1", "name": "Alpha", "archived": False},
+    "proj_2": {"id": "proj_2", "name": "Beta", "archived": False},
+}
+
+
+@projects_bp.get("/projects")
+@require_auth
+def list_projects():
+    """Return all projects for the authenticated workspace."""
+    return jsonify(list(_projects.values()))
+
+
+@projects_bp.post("/projects")
+@require_auth
+def create_project():
+    """Create a new project."""
+    data = request.get_json() or {}
+    name = str(data.get("name", "")).strip()
+    if not name:
+        return jsonify({"error": "name is required"}), 400
+    project_id = f"proj_{len(_projects) + 1}"
+    _projects[project_id] = {"id": project_id, "name": name, "archived": False}
+    return jsonify(_projects[project_id]), 201
+
+
+@projects_bp.get("/projects/<project_id>")
+@require_auth
+def get_project(project_id: str):
+    """Return a single project."""
+    project = _projects.get(project_id)
+    if project is None:
+        return jsonify({"error": "not found"}), 404
+    return jsonify(project)
+
+
+@projects_bp.get("/projects/<project_id>/view")
+@require_auth
+def view_project(project_id: str):
+    """Render a project detail page as HTML."""
+    project = _projects.get(project_id)
+    if project is None:
+        return make_response("<h1>Project not found</h1>", 404, {"Content-Type": "text/html"})
+
+    html = f"""<!DOCTYPE html>
+<html>
+<head><title>{project['name']} — TaskFlow</title></head>
+<body>
+  <h1>{project['name']}</h1>
+  <p>ID: {project['id']}</p>
+  <p>Archived: {project['archived']}</p>
+</body>
+</html>"""
+
+    return make_response(html, 200, {"Content-Type": "text/html"})
+
+
+@projects_bp.delete("/projects/<project_id>")
+def delete_project(project_id: str):
+    """Permanently delete a project and all its data.
+
+    TODO: add @require_auth — this endpoint is currently accessible without
+    a valid session token.
+    """
+    project = _projects.pop(project_id, None)
+    if project is None:
+        return jsonify({"error": "not found"}), 404
+    return jsonify({"deleted": project_id})
+
+
+@projects_bp.post("/projects/<project_id>/archive")
+def archive_project(project_id: str):
+    """Archive a project, hiding it from active views.
+
+    TODO: add @require_auth — this endpoint is currently accessible without
+    a valid session token.
+    """
+    project = _projects.get(project_id)
+    if project is None:
+        return jsonify({"error": "not found"}), 404
+    project["archived"] = True
+    return jsonify(project)
