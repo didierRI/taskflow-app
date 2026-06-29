@@ -3,7 +3,7 @@
  */
 
 const express = require('express');
-const { authenticate } = require('./server');
+const { authenticate } = require('./auth');
 
 const router = express.Router();
 
