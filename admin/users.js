@@ -4,13 +4,28 @@
 
 const express = require('express');
 const { authenticate } = require('./auth');
+const { normalizeRole } = require('./roles');
 
 const router = express.Router();
 
 // In-memory user store (demo only)
 const users = {
-  user_1: { id: 'user_1', email: 'alice@example.com', role: 'member', active: true },
-  user_2: { id: 'user_2', email: 'bob@example.com', role: 'member', active: true },
+  user_1: {
+    id: 'user_1',
+    email: 'alice@example.com',
+    role: 'member',
+    active: true,
+    createdAt: '2026-06-01T09:00:00Z',
+    updatedAt: '2026-06-01T09:00:00Z',
+  },
+  user_2: {
+    id: 'user_2',
+    email: 'bob@example.com',
+    role: 'member',
+    active: true,
+    createdAt: '2026-06-03T14:30:00Z',
+    updatedAt: '2026-06-03T14:30:00Z',
+  },
 };
 
 
@@ -32,8 +47,24 @@ router.post('/admin/users', authenticate, (req, res) => {
   if (!email) {
     return res.status(400).json({ error: 'email is required' });
   }
+
+  let normalizedRole;
+  try {
+    normalizedRole = normalizeRole(role);
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+
   const id = `user_${Object.keys(users).length + 1}`;
-  users[id] = { id, email, role, active: true };
+  const now = new Date().toISOString();
+  users[id] = {
+    id,
+    email,
+    role: normalizedRole,
+    active: true,
+    createdAt: now,
+    updatedAt: now,
+  };
   res.status(201).json(users[id]);
 });
 
@@ -50,6 +81,7 @@ router.delete('/admin/users/:id', (req, res) => {
     return res.status(404).json({ error: 'user not found' });
   }
   user.active = false;
+  user.updatedAt = new Date().toISOString();
   res.json({ deactivated: req.params.id });
 });
 
@@ -65,7 +97,8 @@ router.post('/admin/users/:id/promote', (req, res) => {
   if (!user) {
     return res.status(404).json({ error: 'user not found' });
   }
-  user.role = 'admin';
+  user.role = normalizeRole('admin');
+  user.updatedAt = new Date().toISOString();
   res.json({ promoted: req.params.id, role: user.role });
 });
 
