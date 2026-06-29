@@ -4,14 +4,25 @@ from __future__ import annotations
 
 from flask import Blueprint, jsonify, make_response, request
 
+from .project_metadata import archive_project_record, build_project_record, utc_timestamp
 from .security import require_auth
 
 projects_bp = Blueprint("projects", __name__)
 
 # In-memory project store (demo only)
 _projects: dict[str, dict] = {
-    "proj_1": {"id": "proj_1", "name": "Alpha", "archived": False},
-    "proj_2": {"id": "proj_2", "name": "Beta", "archived": False},
+    "proj_1": build_project_record(
+        "proj_1",
+        "Alpha",
+        workspace_id="ws_1",
+        timestamp="2026-06-01T09:00:00Z",
+    ),
+    "proj_2": build_project_record(
+        "proj_2",
+        "Beta",
+        workspace_id="ws_1",
+        timestamp="2026-06-03T14:30:00Z",
+    ),
 }
 
 
@@ -19,7 +30,9 @@ _projects: dict[str, dict] = {
 @require_auth
 def list_projects():
     """Return all projects for the authenticated workspace."""
-    return jsonify(list(_projects.values()))
+    workspace_id = request.headers.get("X-Workspace-ID", "ws_1")
+    projects = [project for project in _projects.values() if project["workspace_id"] == workspace_id]
+    return jsonify(projects)
 
 
 @projects_bp.post("/projects")
@@ -31,7 +44,13 @@ def create_project():
     if not name:
         return jsonify({"error": "name is required"}), 400
     project_id = f"proj_{len(_projects) + 1}"
-    _projects[project_id] = {"id": project_id, "name": name, "archived": False}
+    workspace_id = request.headers.get("X-Workspace-ID", "ws_1")
+    _projects[project_id] = build_project_record(
+        project_id,
+        name,
+        workspace_id=workspace_id,
+        timestamp=utc_timestamp(),
+    )
     return jsonify(_projects[project_id]), 201
 
 
@@ -59,6 +78,7 @@ def view_project(project_id: str):
 <body>
   <h1>{project['name']}</h1>
   <p>ID: {project['id']}</p>
+  <p>Workspace: {project['workspace_id']}</p>
   <p>Archived: {project['archived']}</p>
 </body>
 </html>"""
@@ -89,5 +109,5 @@ def archive_project(project_id: str):
     project = _projects.get(project_id)
     if project is None:
         return jsonify({"error": "not found"}), 404
-    project["archived"] = True
-    return jsonify(project)
+    _projects[project_id] = archive_project_record(project, timestamp=utc_timestamp())
+    return jsonify(_projects[project_id])
