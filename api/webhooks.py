@@ -6,7 +6,7 @@ import urllib.request
 
 from flask import Blueprint, jsonify, request
 
-from .app import require_auth
+from .security import require_auth
 
 webhooks_bp = Blueprint("webhooks", __name__)
 

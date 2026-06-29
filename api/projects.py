@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from flask import Blueprint, jsonify, make_response, request
 
-from .app import require_auth
+from .security import require_auth
 
 projects_bp = Blueprint("projects", __name__)
 

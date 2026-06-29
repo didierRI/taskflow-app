@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from functools import wraps
-
 from flask import Flask, jsonify, make_response, request
 
 from .auth import auth_bp
@@ -12,22 +10,6 @@ from .billing import billing_bp
 from .projects import projects_bp
 from .search import search_bp
 from .webhooks import webhooks_bp
-
-
-def require_auth(f):
-    """Authentication decorator. Verifies a valid session token is present."""
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        token = request.headers.get("Authorization")
-        if not token or not _validate_token(token):
-            return jsonify({"error": "Authentication required"}), 401
-        return f(*args, **kwargs)
-    return decorated
-
-
-def _validate_token(token: str) -> bool:
-    """Validate a Bearer token against the session store."""
-    return token.startswith("Bearer ") and len(token) > 10
 
 
 def create_app() -> Flask:

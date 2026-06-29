@@ -7,7 +7,7 @@ import pickle
 
 from flask import Blueprint, jsonify, request
 
-from .app import require_auth
+from .security import require_auth
 
 backup_bp = Blueprint("backup", __name__)
 
